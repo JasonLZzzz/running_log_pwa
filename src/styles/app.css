@@ -1,0 +1,372 @@
+:root {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  color: #23382f;
+  background: #f5f6f2;
+  font-synthesis: none;
+  line-height: 1.5;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+textarea {
+  font: inherit;
+  font-size: 16px;
+}
+button,
+.file-button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #b8c5bc;
+  border-radius: 12px;
+  background: #fff;
+  color: #23382f;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+.file-button:focus-within {
+  outline: 3px solid #a67929;
+  outline-offset: 3px;
+}
+button:disabled,
+.disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+button.selected,
+button.primary {
+  color: white;
+  border-color: #1d5b48;
+  background: #1d5b48;
+}
+button.selected {
+  box-shadow: inset 0 0 0 1px #fff;
+}
+.primary {
+  font-weight: 650;
+}
+.danger {
+  color: #8b292d;
+  border-color: #c7a5a4;
+}
+.app-header {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  justify-content: space-between;
+  align-items: center;
+  padding: max(18px, env(safe-area-inset-top)) 18px 12px;
+  border-bottom: 1px solid #dbe2d9;
+  font-weight: 650;
+}
+.app-header small {
+  font-weight: 400;
+  color: #52685e;
+}
+main {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 12px 16px calc(100px + env(safe-area-inset-bottom));
+}
+h1 {
+  font-size: 26px;
+  margin: 12px 0 4px;
+  line-height: 1.3;
+}
+h2 {
+  font-size: 20px;
+  margin-top: 0;
+}
+h3 {
+  font-size: 18px;
+}
+p {
+  overflow-wrap: anywhere;
+}
+.subtle {
+  color: #55685f;
+  font-size: 14px;
+}
+fieldset {
+  margin: 22px 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+legend {
+  font-weight: 650;
+  margin-bottom: 8px;
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.help {
+  margin-left: auto;
+  min-width: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  padding: 4px;
+  background: transparent;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chips button {
+  max-width: 100%;
+}
+.text-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 18px 0;
+  font-weight: 600;
+}
+input,
+textarea {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 48px;
+  color: #23382f;
+  border: 1px solid #b8c5bc;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+  font-weight: 400;
+}
+input[type='datetime-local'],
+input[type='date'] {
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+}
+textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+summary {
+  min-height: 48px;
+  padding: 12px 2px;
+  cursor: pointer;
+  font-weight: 650;
+}
+.advanced {
+  margin: 20px 0;
+  border-top: 1px solid #dbe2d9;
+  border-bottom: 1px solid #dbe2d9;
+}
+.rpe-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.rpe-grid button {
+  padding: 8px 4px;
+  min-height: 46px;
+}
+.save-area {
+  margin-top: 24px;
+}
+.save-area .primary {
+  width: 100%;
+  min-height: 52px;
+}
+.bottom-nav {
+  position: fixed;
+  z-index: 5;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  background: #fff;
+  padding: 8px max(12px, env(safe-area-inset-left))
+    calc(8px + env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-right));
+  border-top: 1px solid #dbe2d9;
+}
+.bottom-nav button {
+  flex: 1;
+  max-width: 210px;
+  border: 0;
+  background: transparent;
+  color: #52685e;
+}
+.bottom-nav .active {
+  background: #e4efe8;
+  color: #1d5b48;
+  font-weight: 700;
+}
+.panel,
+.record-card,
+.empty {
+  border: 1px solid #dbe2d9;
+  border-radius: 16px;
+  padding: 18px;
+  background: #fff;
+  margin: 16px 0;
+}
+.record-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+}
+.record-card time {
+  font-size: 14px;
+  color: #55685f;
+}
+.record-card strong {
+  margin: 3px 0;
+}
+.history-list {
+  display: grid;
+  gap: 12px;
+}
+.history-list .record-card {
+  margin: 0;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.file-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.file-button input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.goal-list {
+  padding: 0;
+  list-style: none;
+}
+.goal-list li {
+  border-top: 1px solid #dbe2d9;
+  margin-top: 18px;
+  padding-top: 16px;
+  overflow-wrap: anywhere;
+}
+.goal-list small {
+  display: block;
+  color: #55685f;
+}
+.import-preview,
+.delete-confirm {
+  border: 1px solid #b8c5bc;
+  padding: 14px;
+  border-radius: 12px;
+  margin-top: 18px;
+}
+.error {
+  color: #8b292d;
+  background: #fff0ed;
+  padding: 12px;
+  border-radius: 10px;
+}
+.success {
+  color: #1d5b48;
+  background: #e4efe8;
+  padding: 12px;
+  border-radius: 10px;
+}
+.load-more {
+  width: 100%;
+  margin-top: 18px;
+}
+dialog {
+  width: min(600px, calc(100vw - 24px));
+  max-height: calc(
+    100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  overflow-y: auto;
+  color: #23382f;
+  background: #f5f6f2;
+  border: 0;
+  padding: 20px;
+  border-radius: 18px;
+}
+dialog::backdrop {
+  background: #18352880;
+}
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.dialog-heading h2 {
+  margin-top: 8px;
+}
+dl {
+  margin: 0;
+}
+dt {
+  font-weight: 650;
+}
+dd {
+  margin: 6px 0 18px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.detail-list dd {
+  margin-bottom: 14px;
+}
+.update-banner {
+  max-width: 680px;
+  padding: 12px 18px;
+  margin: 0 auto;
+  background: #f5ead2;
+}
+@media (max-width: 350px) {
+  main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .panel,
+  .record-card {
+    padding: 14px;
+  }
+  button {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+@media (orientation: landscape) {
+  main {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}

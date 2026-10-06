@@ -27,3 +27,64 @@
 5. **不把未填写自动解释为‘无’**。可选字段必须区分“未填写”和“明确无该项”。
 6. **移动端记录速度优先**，普通训练应能在约 20–30 秒内完成。
 7. **数据归用户所有**：本地保存，可无损导出 JSON，并可导出适合 Python/Codex 分析的 UTF-8 CSV。
+
+---
+
+## V2.0 MVP 实现与运行
+
+React + TypeScript + Vite，普通 CSS；`idb` 封装 IndexedDB。没有后端、账号或数据上传。全部字段以任务包为准，内部 code 与中文显示集中在 `src/domain/fields.ts`。
+
+### Windows 本机运行
+
+使用 Node.js 24 LTS 与 pnpm 11.25.0。此电脑已有 Codex 的 Node/pnpm 运行时，可直接使用仓库内的 PowerShell 包装脚本（优先使用已安装的 `pnpm.cmd`）：
+
+```powershell
+Set-Location -LiteralPath 'E:\Garmin活动\running_log_pwa'
+.\scripts\pnpm.ps1 install --frozen-lockfile
+.\scripts\pnpm.ps1 dev --port 5173 --strictPort
+```
+
+浏览器打开 `http://127.0.0.1:5173`。如果 PowerShell 执行策略阻止脚本，可将每条脚本命令改为 `powershell -ExecutionPolicy Bypass -File .\scripts\pnpm.ps1 ...`。没有 Codex 运行时的电脑请先安装 Node.js 24，然后用 `npm install -g pnpm@11.25.0` 安装 pnpm；也可以直接用 `pnpm` 替代上述脚本。
+
+### 生产构建与 PWA 测试
+
+开发模式显示“开发预览”，不注册 service worker。安装和离线测试必须使用生产构建：
+
+```powershell
+.\scripts\pnpm.ps1 build
+.\scripts\pnpm.ps1 preview --port 4173 --strictPort
+```
+
+打开 `http://127.0.0.1:4173`，等顶部显示“离线可用”后，在开发者工具中断网并刷新。桌面浏览器将 localhost / 127.0.0.1 视为安全上下文；iPhone 通过局域网 IP 访问普通 HTTP 不具备相同条件，应使用静态 HTTPS 站点测试安装和离线。
+
+### 自动验证
+
+```powershell
+.\scripts\pnpm.ps1 typecheck
+.\scripts\pnpm.ps1 lint
+.\scripts\pnpm.ps1 test
+.\scripts\pnpm.ps1 build
+.\scripts\pnpm.ps1 exec playwright install chromium webkit
+.\scripts\pnpm.ps1 test:e2e
+.\scripts\pnpm.ps1 audit
+```
+
+首次下载浏览器之后，`.\scripts\pnpm.ps1 check` 会顺序运行类型检查、lint、单元测试、生产构建和浏览器测试。浏览器测试占用 4173、4174 两个端口，请先关闭预览服务。报告在 `playwright-report/index.html`，失败截图/轨迹在 `test-results/`。
+
+### 静态 HTTPS 部署
+
+构建输出为 `dist/`，全部业务资源、manifest 与 service worker 都使用部署目录相对路径，可以部署在站点根目录或 `/running_log_pwa/` 等子目录。上传完整 `dist/`，不要只上传 `index.html`。建议让 `sw.js` 使用 `Cache-Control: no-cache`，并保留浏览器默认更新检查；应用发现新版本时会提示用户先保存再更新。
+
+优先方案是 GitHub Pages：仓库推送至 GitHub 后，在 Settings → Pages 将发布来源设为 GitHub Actions；使用本仓库 `.github/workflows/pages.yml` 手动运行部署工作流并选择 `build_v2_mvp` 分支。首次启用时，`github-pages` 环境的部署分支规则必须允许此分支；之后按 Actions 返回的 HTTPS 地址打开。此工作流只提供手动触发入口，本次实现没有执行部署，也无需合并到 main。设置过程参考 [GitHub Pages 官方自定义工作流说明](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。
+
+GitHub 要求手动触发的 workflow 文件出现在远端默认分支。如果当前默认分支还没有此文件，可先将 GitHub 默认分支设为 `build_v2_mvp` 再运行上述工作流，这不合并 main；或者将完整 `dist/` 上传到已有静态 HTTPS 托管。默认分支要求见 [GitHub 官方手动运行说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
+
+### 使用与验收
+
+- 数据页可新增、编辑和归档本地目标；记录页新增目标后立即选中。
+- JSON 导入先严格校验格式、版本、全部字段与目标引用，再显示合并预览。确认后使用单个 IndexedDB 事务；同ID按实际时刻比较 `updated_at`，较新者优先，时间相同则保留本地。
+- 坡向/路面空值与 `none` 分开；附加目的 `null` / `[]` / 多选数组分开；关联目标保存 `unset` / `none` / `linked` 三态。取消最后一个附加目的恢复“未填写”，明确无必须单独选择。
+- JSON 完整保存所有工程字段；CSV 使用 UTF-8 BOM、中文列名/标签与中文分号，并转义逗号、引号及多行备注。CSV 用于分析，恢复备份请用 JSON。
+- 数据保存在当前浏览器/PWA 的本地存储，域名/浏览器环境变化可能隔离数据，清除网站数据或系统清理可能丢失。请定期导出 JSON。
+
+详细设计、文件清单、验收证据与真机步骤见 [实现说明](docs/IMPLEMENTATION.md) 和 [验收报告](docs/ACCEPTANCE.md)。根目录原始任务规格文件保持不变。
