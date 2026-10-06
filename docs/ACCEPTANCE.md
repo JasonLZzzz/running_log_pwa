@@ -1,8 +1,50 @@
-# V2.0 MVP 验收报告
+# V2.0 验收报告（MVP / Release Candidate）
 
-日期：2026-10-06（Asia/Shanghai）。依据：原始 `04_ACCEPTANCE_TESTS.md`；没有修改任务规格来适配实现。编码前确认分支 `build_v2_mvp`，工作区干净，原仓库仅有任务包。
+日期：2026-10-06（Asia/Shanghai）。依据：原始 `04_ACCEPTANCE_TESTS.md`；没有修改任务规格来适配实现。初始 MVP 编码前工作区干净，原仓库仅有任务包。本轮 RC 修订前确认分支 `build_v2_mvp`，基线提交 `8dd65a3`，唯一未提交改动为 `scripts/pnpm.ps1` 人工添加的 UTF-8 BOM；该 workaround 已纳入正式兼容修复。
 
-## 验证环境与结果
+## 此前已完成的人工验收
+
+以下项目由用户在本轮请求中明确确认已实际完成，记录的是 RC 修订前的验收。未提供设备/iOS 版本、站点 URL 或逐项执行时间，因此不补写这些信息；本轮代理没有重新部署 GitHub Pages 或重新操作 iPhone。
+
+| 环境 / 验收项 | 已确认结果 |
+| --- | --- |
+| 桌面开发环境与生产构建 | 已完成验收 |
+| IndexedDB 创建、查看、编辑、删除与持久化 | 已完成验收 |
+| 字段空值语义 | 已完成验收；`null` / `none` / `[]` 区分正确 |
+| JSON / UTF-8 BOM CSV 导出 | 已完成验收 |
+| Service Worker 离线加载 | 已完成验收 |
+| GitHub Pages HTTPS 部署 | 已完成验收 |
+| iPhone Safari | 已完成验收 |
+| 添加到主屏幕 | 已完成验收 |
+| 独立 PWA 打开 | 已完成验收 |
+| iPhone 离线新增、查看、编辑 | 已完成验收 |
+| iPhone JSON 真机导出 | 已完成验收 |
+
+## 本轮 RC 重新验证
+
+本轮范围仅为 PowerShell 5.1 兼容、统一 localhost 地址、帮助弹窗字重与验收记录更新。没有新增功能或修改字段体系、数据 schema、页面信息架构。此前人工验收不代表本轮修改后的真机复验。
+
+环境：Windows PowerShell **5.1.26100.9444**、PowerShell **7.6.5**、Node.js **24.19.0**、pnpm **11.25.0**；沿用现有 Vitest 与 Playwright 双浏览器测试。
+
+| 本轮检查 | 实际结果 |
+| --- | --- |
+| `pnpm typecheck` | 通过 |
+| `pnpm lint` | 通过，零警告 |
+| `pnpm test` | 4 个测试文件、64 项通过，无跳过；新增 3 项启动脚本回归 |
+| Windows PowerShell 5.1 | 无 BOM 的纯 ASCII 脚本解析通过；含空格参数及退出码转发通过；直接调用真实 pnpm 返回 11.25.0 |
+| PowerShell 7 | 直接调用真实 pnpm 返回 11.25.0 |
+| 开发服务启动 | 用 PowerShell 5.1 启动 `dev --port 5173 --strictPort`；显示 `http://localhost:5173/`，HTTP 200 且包含 React 入口；检查后关闭服务 |
+| `pnpm build` | 通过，由 PowerShell 5.1 启动；离线清单包含 9 个资源 |
+| `node --check dist/sw.js` | 通过 |
+| `pnpm test:e2e` | 34 项通过（Chromium 17 + WebKit 17），约 1.6 分钟，无跳过、无重试 |
+| 全部 9 个帮助弹窗 | 两浏览器逐项检查：标题/选项名称 700 字重，解释正文 400 字重、16px，弹窗与页面无横向溢出；已查看 320px / 390px 截图 |
+| `git diff --check` / 改动范围 | 通过；无无关改动，六份编号规格、字段/数据模块、锁文件及 Pages 工作流未改 |
+
+本轮完整回归保留了所有原有用例，覆盖 IndexedDB CRUD/重启持久化、工程字段、空值与多选语义、JSON 导入/导出、UTF-8 BOM CSV、根目录/子目录 Service Worker 离线加载，以及停止源站后的操作。1000 条历史首批打开测得 Chromium 45ms、WebKit 140ms；批量导入分别为 238ms、16069ms，属于本机自动化测量，不代表真机性能保证。
+
+本轮没有重新运行依赖安装或 `pnpm audit`；下节对应结果为初始 MVP 的历史记录。本轮没有部署修订后版本，因此 HTTPS / iPhone / 添加到主屏幕 / 独立 PWA / 真机离线操作与导出的修订后复验尚未执行。
+
+## 初始 MVP 自动验证环境与结果
 
 Windows、Node.js 24.19.0、pnpm 11.25.0。Vitest + fake-indexeddb；Playwright 1.63 的 Chromium 与 WebKit，移动触控视口及 Asia/Shanghai 时区。生产构建进行浏览器测试，未使用开发服务替代 PWA 验收。
 
@@ -87,10 +129,12 @@ Windows 命令将 `pnpm` 替换为 `.\scripts\pnpm.ps1` 即可；完整命令见
 
 | 验收项 | 结果与证据 |
 | --- | --- |
-| 生产站点 HTTPS | 部署配置/说明完成；尚未发布真实 HTTPS 站点，待部署后验证 |
-| iPhone Safari 添加到主屏幕 | manifest、PNG/Apple 图标与元数据完成；待真实 iPhone 验证 |
-| 首次在线加载后断网打开 | 两浏览器缓存与导航通过；真实飞行模式待真机验证 |
+| 生产站点 HTTPS | 用户确认此前已完成 GitHub Pages HTTPS 部署与验收；本轮未重新部署 |
+| iPhone Safari / 添加到主屏幕 / 独立 PWA | 用户确认此前已逐项完成；本轮未重新操作真机 |
+| 首次在线加载后断网打开 | 两浏览器缓存与导航通过；用户确认此前已完成 iPhone PWA 离线使用 |
 | 离线新增/编辑/删除/导出 | 两浏览器实际停止源站后的完整路径通过 |
+| iPhone 离线新增/查看/编辑 | 用户确认此前已完成；未单独确认真机离线删除 |
+| iPhone JSON 导出 | 用户确认此前已完成真机导出；未单独确认真机 CSV 导出/JSON 导入 |
 | standalone 底部不被遮挡 | safe-area 样式已实现，移动视口无溢出；Home Indicator 待真机验证 |
 
 离线测试先等待 service worker 控制页面，真正停止临时静态服务器，并用独立 Node 请求确认源站不可达；刷新/重开响应断言 `fromServiceWorker() === true`。覆盖根目录与子目录，以及同一测试配置目录的浏览器进程完全退出/重启。
@@ -129,7 +173,9 @@ RunRecord 校验、中文映射、CSV escaping、附加目的三态、关联目�
 
 最终完整运行中 Chromium 导入 1000 条备份 211ms，Windows Playwright WebKit 为 16059ms。测试为导入等待单独留出时间，历史打开性能单独测量。处理中禁用重复操作并显示中文等待状态。小备份/日常新增不需要此批量导入等待。
 
-## iPhone 人工验收步骤
+## iPhone 修订后复验参考步骤
+
+此前已确认完成的项目见报告开头。本轮未重新执行下列真机步骤；此清单保留为 RC 部署后的复验参考，其中 Home Indicator、计时、真机 CSV/JSON 导入和线上多版本更新仍无单独确认的结果。
 
 1. 将完整 `dist/` 发布到静态 HTTPS 站点，在 iPhone Safari 打开，等待“离线可用”。
 2. 按场景 1 保存记录，从历史进入详情、编辑；导出 JSON 与 CSV，确认文件能保存在“文件”应用。
@@ -139,4 +185,4 @@ RunRecord 校验、中文映射、CSV escaping、附加目的三态、关联目�
 6. 建立/修改/归档目标，确认已有记录引用保留，新记录默认隐藏归档目标；可通过“查看已归档”选取。
 7. 普通训练全程计时，确认实际操作约 20–30 秒；再发布一个测试更新，确认提示更新前能保存输入。
 
-没有声称完成上述真机步骤或实际 HTTPS 发布。其余已知限制见 IMPLEMENTATION.md：本地存储可能被清理、未知未来 schema 拒绝、旧备份可恢复已删除记录、没有云同步。
+仅将用户明确确认的此前人工验收记录为通过，不将上述全部参考步骤视为已执行。本轮修订后的 HTTPS/iPhone 复验尚未执行。其余已知限制见 IMPLEMENTATION.md：本地存储可能被清理、未知未来 schema 拒绝、旧备份可恢复已删除记录、没有云同步。

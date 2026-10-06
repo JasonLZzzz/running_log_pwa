@@ -8,12 +8,12 @@
   },
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "vite --host localhost",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "build": "tsc --noEmit && vite build && node scripts/build-sw.mjs",
-    "preview": "vite preview --host 127.0.0.1",
+    "preview": "vite preview --host localhost",
     "test:e2e": "playwright test",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:e2e"
   },

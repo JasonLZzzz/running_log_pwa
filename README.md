@@ -36,7 +36,7 @@ React + TypeScript + Vite，普通 CSS；`idb` 封装 IndexedDB。没有后端�
 
 ### Windows 本机运行
 
-使用 Node.js 24 LTS 与 pnpm 11.25.0。此电脑已有 Codex 的 Node/pnpm 运行时，可直接使用仓库内的 PowerShell 包装脚本（优先使用已安装的 `pnpm.cmd`）：
+使用 Node.js 24 LTS 与 pnpm 11.25.0。此电脑已有 Codex 的 Node/pnpm 运行时，可直接使用仓库内的 PowerShell 包装脚本（优先使用已安装的 `pnpm.cmd`）。脚本只使用 ASCII 字符，兼容 Windows PowerShell 5.1 和 PowerShell 7，不需要手工添加 UTF-8 BOM：
 
 ```powershell
 Set-Location -LiteralPath 'E:\Garmin活动\running_log_pwa'
@@ -44,7 +44,7 @@ Set-Location -LiteralPath 'E:\Garmin活动\running_log_pwa'
 .\scripts\pnpm.ps1 dev --port 5173 --strictPort
 ```
 
-浏览器打开 `http://127.0.0.1:5173`。如果 PowerShell 执行策略阻止脚本，可将每条脚本命令改为 `powershell -ExecutionPolicy Bypass -File .\scripts\pnpm.ps1 ...`。没有 Codex 运行时的电脑请先安装 Node.js 24，然后用 `npm install -g pnpm@11.25.0` 安装 pnpm；也可以直接用 `pnpm` 替代上述脚本。
+浏览器打开 `http://localhost:5173/`。如果 PowerShell 执行策略阻止脚本，可将每条脚本命令改为 `powershell -ExecutionPolicy Bypass -File .\scripts\pnpm.ps1 ...`。没有 Codex 运行时的电脑请先安装 Node.js 24，然后用 `npm install -g pnpm@11.25.0` 安装 pnpm；也可以直接用 `pnpm` 替代上述脚本。
 
 ### 生产构建与 PWA 测试
 
@@ -55,7 +55,9 @@ Set-Location -LiteralPath 'E:\Garmin活动\running_log_pwa'
 .\scripts\pnpm.ps1 preview --port 4173 --strictPort
 ```
 
-打开 `http://127.0.0.1:4173`，等顶部显示“离线可用”后，在开发者工具中断网并刷新。桌面浏览器将 localhost / 127.0.0.1 视为安全上下文；iPhone 通过局域网 IP 访问普通 HTTP 不具备相同条件，应使用静态 HTTPS 站点测试安装和离线。
+打开 `http://localhost:4173/`，等顶部显示“离线可用”后，在开发者工具中断网并刷新。桌面浏览器将 localhost 视为安全上下文；iPhone 通过局域网 IP 访问普通 HTTP 不具备相同条件，应使用静态 HTTPS 站点测试安装和离线。
+
+IndexedDB 按 origin（协议、主机名、端口）隔离。`localhost` 与 `127.0.0.1` 是不同主机名，5173 与 4173 也是不同端口，数据不会共享；开发预览、生产预览和 HTTPS 站点各有独立记录。切换地址后看不到原记录并不表示记录已丢失，请回到原地址查看；迁移请在原地址导出 JSON，再在新地址导入。
 
 ### 自动验证
 
@@ -75,9 +77,7 @@ Set-Location -LiteralPath 'E:\Garmin活动\running_log_pwa'
 
 构建输出为 `dist/`，全部业务资源、manifest 与 service worker 都使用部署目录相对路径，可以部署在站点根目录或 `/running_log_pwa/` 等子目录。上传完整 `dist/`，不要只上传 `index.html`。建议让 `sw.js` 使用 `Cache-Control: no-cache`，并保留浏览器默认更新检查；应用发现新版本时会提示用户先保存再更新。
 
-优先方案是 GitHub Pages：仓库推送至 GitHub 后，在 Settings → Pages 将发布来源设为 GitHub Actions；使用本仓库 `.github/workflows/pages.yml` 手动运行部署工作流并选择 `build_v2_mvp` 分支。首次启用时，`github-pages` 环境的部署分支规则必须允许此分支；之后按 Actions 返回的 HTTPS 地址打开。此工作流只提供手动触发入口，本次实现没有执行部署，也无需合并到 main。设置过程参考 [GitHub Pages 官方自定义工作流说明](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)。
-
-GitHub 要求手动触发的 workflow 文件出现在远端默认分支。如果当前默认分支还没有此文件，可先将 GitHub 默认分支设为 `build_v2_mvp` 再运行上述工作流，这不合并 main；或者将完整 `dist/` 上传到已有静态 HTTPS 托管。默认分支要求见 [GitHub 官方手动运行说明](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)。
+用户已在本轮 RC 修订前完成 GitHub Pages HTTPS 部署及 iPhone 验收，详见验收报告。现有 `.github/workflows/pages.yml` 提供手动部署入口，可选择 `build_v2_mvp` 分支并按 Actions 返回的 HTTPS 地址访问。本轮只修订本地代码与文档，不重新部署，不调整 Pages 设置或默认分支，也不合并到 main。
 
 ### 使用与验收
 

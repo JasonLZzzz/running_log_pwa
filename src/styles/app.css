@@ -320,6 +320,17 @@ dialog {
 dialog::backdrop {
   background: #18352880;
 }
+.field-help {
+  font-weight: 400;
+}
+.field-help h2,
+.field-help dt {
+  font-weight: 700;
+}
+.field-help p,
+.field-help dd {
+  font-weight: 400;
+}
 .dialog-heading {
   display: flex;
   align-items: flex-start;

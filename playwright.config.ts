@@ -8,7 +8,7 @@ export default defineConfig({
   retries: 0,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: 'http://localhost:4173/',
     timezoneId: 'Asia/Shanghai',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
@@ -37,14 +37,14 @@ export default defineConfig({
   webServer: [
     {
       command:
-        'node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4173 --strictPort',
-      url: 'http://127.0.0.1:4173',
+        'node node_modules/vite/bin/vite.js preview --host localhost --port 4173 --strictPort',
+      url: 'http://localhost:4173/',
       reuseExistingServer: false,
     },
     {
       command:
-        'node node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4174 --strictPort --base /running_log_pwa/',
-      url: 'http://127.0.0.1:4174/running_log_pwa/',
+        'node node_modules/vite/bin/vite.js preview --host localhost --port 4174 --strictPort --base /running_log_pwa/',
+      url: 'http://localhost:4174/running_log_pwa/',
       reuseExistingServer: false,
     },
   ],

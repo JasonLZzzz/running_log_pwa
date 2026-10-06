@@ -6,10 +6,12 @@ export function Modal({
   title,
   children,
   onClose,
+  className,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -20,6 +22,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
+      className={className}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -57,7 +60,7 @@ export function Help({
         ？
       </button>
       {open && (
-        <Modal title={title} onClose={() => setOpen(false)}>
+        <Modal title={title} className="field-help" onClose={() => setOpen(false)}>
           <p>{text}</p>
           <dl>
             {options.map((o) => (

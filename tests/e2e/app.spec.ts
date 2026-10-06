@@ -134,6 +134,29 @@ test('新增 → 双击防重 → 刷新/重启 → 历史 → 编辑 → JSON/C
   expect(errors).toEqual([]);
 });
 
+test('所有字段帮助：标题/选项加粗，解释正文正常字重，移动布局可读', async ({ page }) => {
+  await page.getByText('专项与其他信息', { exact: true }).click();
+  const helps = page.getByRole('button', { name: /帮助$/ });
+  await expect(helps).toHaveCount(9);
+  for (let i = 0; i < await helps.count(); i++) {
+    await helps.nth(i).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('h2')).toHaveCSS('font-weight', '700');
+    for (const option of await dialog.locator('dt').all())
+      await expect(option).toHaveCSS('font-weight', '700');
+    for (const explanation of await dialog.locator('p, dd').all()) {
+      await expect(explanation).toHaveCSS('font-weight', '400');
+      await expect(explanation).toHaveCSS('font-size', '16px');
+    }
+    expect(await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await noOverflow(page);
+    if (i === 0)
+      await page.screenshot({ path: `test-results/${test.info().project.name}-help.png` });
+    await dialog.getByRole('button', { name: '关闭', exact: true }).click();
+  }
+});
+
 test('可选字段三态、多选、其他校验、帮助和详情', async ({ page }) => {
   await base(page);
   await choose(page, '计划结构', '其他');
