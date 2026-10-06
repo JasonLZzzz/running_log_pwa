@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { fields, goalStatusLabels, label } from '../domain/fields';
 import { displayTime } from '../domain/time';
 import { goalLabel, type Goal, type RunRecord } from '../domain/types';
@@ -45,6 +45,23 @@ export function RecordDetail({
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const confirmation = useRef<HTMLDivElement>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const deleteButton = useRef<HTMLButtonElement>(null);
+  const wasConfirming = useRef(false);
+  const warningId = useId();
+  useEffect(() => {
+    if (confirm) {
+      cancelButton.current?.focus({ preventScroll: true });
+      confirmation.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'instant',
+      });
+    } else if (wasConfirming.current) {
+      deleteButton.current?.focus();
+    }
+    wasConfirming.current = confirm;
+  }, [confirm]);
   const rows: [string, string][] = [
     ['训练时间', displayTime(record.activity_time)],
   ];
@@ -122,8 +139,13 @@ export function RecordDetail({
         </p>
       )}
       {confirm ? (
-        <div className="delete-confirm">
-          <p>删除后只能通过备份恢复。</p>
+        <div
+          ref={confirmation}
+          className="delete-confirm"
+          role="group"
+          aria-label="删除确认"
+        >
+          <p id={warningId}>删除后只能通过备份恢复。</p>
           <div className="actions">
             <button
               className="danger"
@@ -143,7 +165,12 @@ export function RecordDetail({
             >
               确认删除
             </button>
-            <button disabled={busy} onClick={() => setConfirm(false)}>
+            <button
+              ref={cancelButton}
+              aria-describedby={warningId}
+              disabled={busy}
+              onClick={() => setConfirm(false)}
+            >
               取消
             </button>
           </div>
@@ -153,7 +180,11 @@ export function RecordDetail({
           <button className="primary" onClick={() => onEdit(record)}>
             编辑记录
           </button>
-          <button className="danger" onClick={() => setConfirm(true)}>
+          <button
+            ref={deleteButton}
+            className="danger"
+            onClick={() => setConfirm(true)}
+          >
             删除记录
           </button>
         </div>

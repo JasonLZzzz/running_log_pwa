@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Repository } from '../data/db';
 import { download, exportCsv, jsonBackup } from '../data/export';
+import { localFilenameTime } from '../domain/time';
 import { parseBackup, ValidationError } from '../data/schema';
 import { type Counts, type MergePlan } from '../data/merge';
 import {
@@ -61,9 +62,10 @@ export function DataPage({
             disabled={busy}
             onClick={() =>
               void action(async () => {
+                const exportedAt = new Date();
                 download(
-                  jsonBackup(await repository.snapshot()),
-                  '跑后记录备份.json',
+                  jsonBackup(await repository.snapshot(), exportedAt),
+                  `跑后记录备份_${localFilenameTime(exportedAt)}.json`,
                   'application/json;charset=utf-8',
                 );
                 setMessage('JSON 备份已导出。');
@@ -76,9 +78,10 @@ export function DataPage({
             disabled={busy}
             onClick={() =>
               void action(async () => {
+                const exportedAt = new Date();
                 download(
                   exportCsv(await repository.snapshot()),
-                  '跑后记录.csv',
+                  `跑后记录_${localFilenameTime(exportedAt)}.csv`,
                   'text/csv;charset=utf-8',
                 );
                 setMessage('CSV 已导出。');

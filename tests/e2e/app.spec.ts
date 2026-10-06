@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { backup, goal, goalId, record, t1, t2 } from '../fixtures';
 import type { Backup, RunRecord } from '../../src/domain/types';
 import { startOfflineServer } from './offline-server';
+import { CSV_HEADERS } from '../../src/data/export';
 const group = (page: Page, title: string) =>
   page.getByRole('group', { name: new RegExp(`^${title}`) });
 async function choose(page: Page, title: string, option: string) {
@@ -28,11 +29,20 @@ async function nav(page: Page, name: string) {
     .getByRole('button', { name, exact: true })
     .click();
 }
-async function downloadText(page: Page, button: string) {
+async function downloadFile(page: Page, button: string) {
   const downloading = page.waitForEvent('download');
   await page.getByRole('button', { name: button, exact: true }).click();
   const download = await downloading;
-  return readFile((await download.path())!, 'utf8');
+  const filename = download.suggestedFilename();
+  expect(filename).toMatch(
+    button === '导出 JSON 备份'
+      ? /^跑后记录备份_\d{8}_\d{6}\.json$/
+      : /^跑后记录_\d{8}_\d{6}\.csv$/,
+  );
+  return { filename, text: await readFile((await download.path())!, 'utf8') };
+}
+async function downloadText(page: Page, button: string) {
+  return (await downloadFile(page, button)).text;
 }
 async function exported(page: Page): Promise<Backup> {
   await nav(page, '数据');
@@ -67,6 +77,84 @@ test.beforeEach(async ({ page }) => {
     page.getByRole('heading', { name: '记录本次跑步' }),
   ).toBeVisible();
 });
+
+for (const width of [320, 390])
+  test(`${width}px 长详情：删除确认自动可见，取消获得焦点，两阶段删除保持`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 600 });
+    await nav(page, '数据');
+    await importData(page, backup([record({ note: '长备注，检查详情内滚动。\n'.repeat(80) })]));
+    await nav(page, '历史');
+    await page.locator('.record-card').click();
+    const dialog = page.getByRole('dialog', { name: '记录详情' });
+    expect(await dialog.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+    const trigger = dialog.getByRole('button', { name: '删除记录', exact: true });
+    const cancel = dialog.getByRole('button', { name: '取消', exact: true });
+    const danger = dialog.getByRole('button', { name: '确认删除', exact: true });
+    const confirmation = dialog.getByRole('group', { name: '删除确认' });
+    async function checkConfirmation() {
+      await expect(cancel).toBeFocused();
+      await expect(danger).not.toBeFocused();
+      await expect(cancel).toHaveAccessibleDescription('删除后只能通过备份恢复。');
+      await expect(confirmation).toBeInViewport({ ratio: 1 });
+      expect(await confirmation.evaluate((element) => {
+        const container = element.closest('dialog')!;
+        const bounds = container.getBoundingClientRect();
+        const area = element.getBoundingClientRect();
+        return area.top >= bounds.top && area.bottom <= bounds.bottom &&
+          [...element.querySelectorAll('button')].every((button) => {
+            const rect = button.getBoundingClientRect();
+            return document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2) === button;
+          });
+      })).toBe(true);
+      await noOverflow(page);
+    }
+    await trigger.click();
+    await checkConfirmation();
+    await expect(page.locator('.record-card')).toHaveCount(1);
+    await cancel.press('Enter');
+    await expect(confirmation).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(page.locator('.record-card')).toHaveCount(1);
+    await trigger.press('Enter');
+    await checkConfirmation();
+    await danger.click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('.record-card')).toHaveCount(0);
+  });
+
+for (const [timezoneId, jsonTime, csvTime, offsetTime] of [
+  ['Asia/Shanghai', '20260102_155959', '20260102_160001', '2026-01-02T15:59:59.999+08:00'],
+  ['America/Los_Angeles', '20260101_235959', '20260102_000001', '2026-01-01T23:59:59.999-08:00'],
+]) {
+  test.describe(`导出设备本地时间：${timezoneId}`, () => {
+    test.use({ timezoneId });
+    test('文件名补零，JSON 同一导出时刻，CSV 使用新动作时刻，版本正确', async ({ page }) => {
+      await nav(page, '数据');
+      await expect(page.getByText('应用版本：2.0.1')).toBeVisible();
+      await expect(page.getByText('数据结构版本：1.0.0')).toBeVisible();
+      // Any second clock read crosses a minute (and the local date in Los Angeles).
+      await page.evaluate(() => {
+        const instant = Date.parse('2026-01-02T07:59:59.999Z');
+        let reads = 0;
+        window.Date = new Proxy(Date, {
+          construct(target, args, newTarget) {
+            return Reflect.construct(target, args.length ? args : [instant + (reads++ ? 1001 : 0)], newTarget);
+          },
+        });
+      });
+      const json = await downloadFile(page, '导出 JSON 备份');
+      expect(json.filename).toBe(`跑后记录备份_${jsonTime}.json`);
+      const envelope = JSON.parse(json.text) as Backup;
+      expect(envelope.exported_at).toBe(offsetTime);
+      expect(Date.parse(envelope.exported_at)).toBe(Date.parse('2026-01-02T07:59:59.999Z'));
+      expect(Object.keys(envelope).sort()).toEqual(['backup_version', 'exported_at', 'format', 'goals', 'records']);
+      expect(envelope.backup_version).toBe('1.0.0');
+      const csv = await downloadFile(page, '导出 CSV');
+      expect(csv.filename).toBe(`跑后记录_${csvTime}.csv`);
+      expect(csv.text).toBe('\uFEFF' + CSV_HEADERS.join(',') + '\r\n');
+    });
+  });
+}
 
 test('新增 → 双击防重 → 刷新/重启 → 历史 → 编辑 → JSON/CSV → 确认删除', async ({
   page,

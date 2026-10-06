@@ -1,6 +1,6 @@
 import type { Code } from './fields';
 export const SCHEMA_VERSION = '1.0.0';
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.0.1';
 export type RunRecord = {
   record_id: string;
   schema_version: typeof SCHEMA_VERSION;

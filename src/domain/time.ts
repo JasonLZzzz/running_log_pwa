@@ -9,6 +9,9 @@ export function localIso(date = new Date()): string {
 export function displayTime(iso: string): string {
   return localInputTime(new Date(iso)).replace('T', ' ');
 }
+export function localFilenameTime(date: Date): string {
+  return `${String(date.getFullYear()).padStart(4, '0')}${pad(date.getMonth() + 1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+}
 export function nextUpdatedAt(previous?: string): string {
   return localIso(
     new Date(Math.max(Date.now(), previous ? Date.parse(previous) + 1 : 0)),

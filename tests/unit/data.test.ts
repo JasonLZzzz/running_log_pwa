@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { Repository } from '../../src/data/db';
 import {
   CSV_HEADERS,
@@ -10,6 +11,8 @@ import {
 } from '../../src/data/export';
 import { parseBackup, validateRecord } from '../../src/data/schema';
 import { planMerge } from '../../src/data/merge';
+import { localFilenameTime, localIso } from '../../src/domain/time';
+import { APP_VERSION, SCHEMA_VERSION } from '../../src/domain/types';
 import {
   backup,
   goal,
@@ -23,6 +26,33 @@ import {
 } from '../fixtures';
 
 describe('备份和 CSV', () => {
+  it('应用 patch 版本更新，数据与备份版本保持不变', () => {
+    expect(APP_VERSION).toBe('2.0.1');
+    expect(JSON.parse(readFileSync('package.json', 'utf8')).version).toBe(APP_VERSION);
+    expect(SCHEMA_VERSION).toBe('1.0.0');
+    expect(createBackup({ records: [], goals: [] }).backup_version).toBe('1.0.0');
+  });
+  it.each([
+    [new Date(2026, 0, 2, 3, 4, 5), '20260102_030405'],
+    [new Date(2026, 9, 6, 21, 22, 18), '20261006_212218'],
+    [new Date(2026, 11, 31, 23, 59, 59), '20261231_235959'],
+  ])('文件时间戳使用本地日历时间并补零：%s', (date, expected) => {
+    expect(localFilenameTime(date)).toBe(expected);
+    expect(localFilenameTime(date)).toMatch(/^\d{8}_\d{6}$/);
+  });
+  it('跨秒、跨日读取备份时，JSON 仍保留导出动作捕获的同一时刻', () => {
+    const exportedAt = new Date(2026, 11, 31, 23, 59, 59, 999);
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date(2027, 0, 1, 0, 0, 1));
+      const data = parseBackup(jsonBackup({ records: [record()], goals: [] }, exportedAt));
+      expect(data.exported_at).toBe(localIso(exportedAt));
+      expect(localFilenameTime(new Date(data.exported_at))).toBe('20261231_235959');
+      expect(data.records[0].schema_version).toBe('1.0.0');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
   it('JSON 无损往返空值、空数组、其他文字、多行备注和工程字段', () => {
     const records = [
       record(),

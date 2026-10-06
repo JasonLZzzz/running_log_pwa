@@ -6,17 +6,17 @@ import {
   type Snapshot,
 } from '../domain/types';
 import { localIso } from '../domain/time';
-export function createBackup(snapshot: Snapshot): Backup {
+export function createBackup(snapshot: Snapshot, exportedAt = new Date()): Backup {
   return {
     format: 'running-log-backup',
     backup_version: '1.0.0',
-    exported_at: localIso(),
+    exported_at: localIso(exportedAt),
     records: snapshot.records,
     goals: snapshot.goals,
   };
 }
-export const jsonBackup = (snapshot: Snapshot) =>
-  JSON.stringify(createBackup(snapshot), null, 2);
+export const jsonBackup = (snapshot: Snapshot, exportedAt = new Date()) =>
+  JSON.stringify(createBackup(snapshot, exportedAt), null, 2);
 export function csvEscape(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
