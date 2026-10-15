@@ -65,10 +65,10 @@ it.each(scenarios)('验收场景：%s，校验与JSON/CSV保持各维度', (_nam
   const r = record(patch);
   const goals = [goal({ name: '黄山百公里40 km组' })];
   validateRecord(r, goals);
-  const snapshot = { records: [r], goals };
+  const snapshot = { records: [r], goals, shoes: [] };
   expect(parseBackup(jsonBackup(snapshot)).records[0]).toEqual(r);
   const row = csvRows(snapshot)[0];
-  expect(row).toHaveLength(20);
+  expect(row).toHaveLength(25);
   if (
     r.planned_intensity === 'threshold' &&
     r.planned_structure === 'continuous_steady'

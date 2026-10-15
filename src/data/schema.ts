@@ -2,9 +2,14 @@ import { fields, type FieldKey } from '../domain/fields';
 import {
   SCHEMA_VERSION,
   type Backup,
+  type BackupSource,
   type Goal,
+  type LegacyGoal,
+  type LegacyRecord,
   type RunRecord,
+  type Shoe,
 } from '../domain/types';
+import { shoeTypes } from '../domain/shoes';
 
 export class ValidationError extends Error {}
 function fail(message: string): never {
@@ -70,10 +75,14 @@ function enumValue(value: unknown, key: FieldKey, optional = false) {
   if (!fields[key].options.some((o) => o.code === value))
     fail(`请填写有效的${fields[key].label}。`);
 }
-function common(value: Record<string, unknown>, id: string, name: string) {
+function common(
+  value: Record<string, unknown>,
+  id: string,
+  name: string,
+  version: string = SCHEMA_VERSION,
+) {
   uuid(value[id], `${name}ID`);
-  if (value.schema_version !== SCHEMA_VERSION)
-    fail(`${name}数据结构版本无法识别。`);
+  if (value.schema_version !== version) fail(`${name}数据结构版本无法识别。`);
   for (const key of ['created_at', 'updated_at'])
     if (!isIsoTime(value[key]))
       fail(`${name}创建时间或更新时间必须是带时区的有效日期时间。`);
@@ -114,23 +123,55 @@ const goalKeys = [
   'created_at',
   'updated_at',
 ];
-export function validateGoal(input: unknown): asserts input is Goal {
+function goalFields(input: unknown, version: string) {
   const goal = object(input, '目标');
   keys(goal, goalKeys, '目标');
-  common(goal, 'goal_id', '目标');
+  common(goal, 'goal_id', '目标', version);
   if (typeof goal.name !== 'string' || !goal.name.trim())
     fail('请输入目标名称。');
   if (goal.target_date !== null && !isDate(goal.target_date))
     fail('目标日期必须是有效的日期。');
   if (typeof goal.archived !== 'boolean') fail('目标归档状态不正确。');
 }
+export function validateGoal(input: unknown): asserts input is Goal {
+  goalFields(input, SCHEMA_VERSION);
+}
+export function validateLegacyGoal(
+  input: unknown,
+): asserts input is LegacyGoal {
+  goalFields(input, '1.0.0');
+}
 export function validateRecord(
   input: unknown,
   goals: readonly Goal[],
+  shoes: readonly Shoe[] = [],
 ): asserts input is RunRecord {
+  recordFields(input, goals, SCHEMA_VERSION);
+  const record = input as RunRecord;
+  if (record.shoe_id !== null) {
+    uuid(record.shoe_id, '用鞋ID');
+    if (!shoes.some((shoe) => shoe.shoe_id === record.shoe_id))
+      fail('本次用鞋必须引用鞋库中存在的鞋子，不能自动清空缺失关联。');
+  }
+}
+export function validateLegacyRecord(
+  input: unknown,
+  goals: readonly LegacyGoal[],
+): asserts input is LegacyRecord {
+  recordFields(input, goals, '1.0.0');
+}
+function recordFields(
+  input: unknown,
+  goals: readonly { goal_id: string }[],
+  version: string,
+) {
   const record = object(input, '记录');
-  keys(record, recordKeys, '记录');
-  common(record, 'record_id', '记录');
+  keys(
+    record,
+    version === '1.0.0' ? recordKeys : [...recordKeys, 'shoe_id'],
+    '记录',
+  );
+  common(record, 'record_id', '记录', version);
   if (!isIsoTime(record.activity_time))
     fail('训练时间必须是带时区的有效日期时间。');
   for (const key of [
@@ -189,41 +230,114 @@ export function validateRecord(
     fail('主观用力程度必须为空或 1–10 整数。');
   textOrNull(record.note, '备注');
 }
-export function migrateBackup(inputVersion: unknown, data: unknown): unknown {
-  if (inputVersion !== '1.0.0')
-    fail('备份版本无法识别，请使用支持该版本的应用导入。');
-  return data; // Future migrations belong here; no invented migration rules.
+export function validateShoe(input: unknown): asserts input is Shoe {
+  const shoe = object(input, '鞋子');
+  keys(
+    shoe,
+    [
+      'shoe_id',
+      'brand',
+      'model',
+      'nickname',
+      'shoe_type',
+      'status',
+      'note',
+      'schema_version',
+      'created_at',
+      'updated_at',
+    ],
+    '鞋子',
+  );
+  common(shoe, 'shoe_id', '鞋子');
+  for (const [key, name] of [
+    ['brand', '品牌'],
+    ['model', '鞋款型号'],
+    ['nickname', '编号/昵称'],
+  ])
+    if (typeof shoe[key] !== 'string' || !(shoe[key] as string).trim())
+      fail(`请填写${name}。`);
+  if (
+    shoe.shoe_type !== null &&
+    !shoeTypes.some((option) => option.code === shoe.shoe_type)
+  )
+    fail('鞋子主要类型不正确。');
+  if (shoe.status !== 'active' && shoe.status !== 'retired')
+    fail('鞋子使用状态不正确。');
+  textOrNull(shoe.note, '鞋子备注');
 }
-export function parseBackup(text: string): Backup {
+export function migrateBackup(inputVersion: unknown, data: unknown): Backup {
+  validateBackup(data);
+  if (inputVersion !== data.backup_version)
+    fail('备份来源版本与文件内容不一致。');
+  if (data.backup_version === '2.0.0') return data;
+  return {
+    ...data,
+    backup_version: '2.0.0',
+    records: data.records.map((record) => ({
+      ...record,
+      schema_version: SCHEMA_VERSION,
+      shoe_id: null,
+    })),
+    goals: data.goals.map((goal) => ({
+      ...goal,
+      schema_version: SCHEMA_VERSION,
+    })),
+    shoes: [],
+  };
+}
+export function parseBackup(text: string): BackupSource {
   let input: unknown;
   try {
     input = JSON.parse(text.replace(/^\uFEFF/, ''));
   } catch {
     fail('文件不是有效的 JSON 备份。');
   }
-  const envelope = object(input, '备份');
   validateBackup(input);
-  return envelope as Backup;
+  // Preserve the source envelope until merging so v1 absence cannot clear a v2 shoe link.
+  return input;
 }
-export function validateBackup(input: unknown): asserts input is Backup {
+export function validateBackup(input: unknown): asserts input is BackupSource {
   const envelope = object(input, '备份');
   if (envelope.format !== 'running-log-backup') fail('无法识别的备份格式。');
-  migrateBackup(envelope.backup_version, input);
+  if (
+    envelope.backup_version !== '1.0.0' &&
+    envelope.backup_version !== '2.0.0'
+  )
+    fail('备份版本无法识别，请使用支持该版本的应用导入。');
+  const legacy = envelope.backup_version === '1.0.0';
   keys(
     envelope,
-    ['format', 'backup_version', 'exported_at', 'records', 'goals'],
+    [
+      'format',
+      'backup_version',
+      'exported_at',
+      'records',
+      'goals',
+      ...(legacy ? [] : ['shoes']),
+    ],
     '备份',
   );
   if (!isIsoTime(envelope.exported_at)) fail('备份导出时间不正确。');
   if (!Array.isArray(envelope.goals) || !Array.isArray(envelope.records))
     fail('备份缺少记录或目标列表。');
-  envelope.goals.forEach(validateGoal);
+  const shoes = legacy ? [] : envelope.shoes;
+  if (!Array.isArray(shoes)) fail('备份缺少鞋库列表。');
+  shoes.forEach(validateShoe);
+  if (legacy) {
+    envelope.goals.forEach(validateLegacyGoal);
+    for (const record of envelope.records)
+      validateLegacyRecord(record, envelope.goals as LegacyGoal[]);
+  } else {
+    envelope.goals.forEach(validateGoal);
+    for (const record of envelope.records)
+      validateRecord(record, envelope.goals as Goal[], shoes);
+  }
   const goals = envelope.goals as Goal[];
-  for (const record of envelope.records) validateRecord(record, goals);
   const records = envelope.records as RunRecord[];
   if (
     new Set(goals.map((g) => g.goal_id)).size !== goals.length ||
-    new Set(records.map((r) => r.record_id)).size !== records.length
+    new Set(records.map((r) => r.record_id)).size !== records.length ||
+    new Set((shoes as Shoe[]).map((shoe) => shoe.shoe_id)).size !== shoes.length
   )
     fail('备份中存在重复ID，请检查文件。');
 }

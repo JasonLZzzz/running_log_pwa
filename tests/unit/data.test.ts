@@ -26,11 +26,15 @@ import {
 } from '../fixtures';
 
 describe('备份和 CSV', () => {
-  it('应用 patch 版本更新，数据与备份版本保持不变', () => {
-    expect(APP_VERSION).toBe('2.0.1');
-    expect(JSON.parse(readFileSync('package.json', 'utf8')).version).toBe(APP_VERSION);
-    expect(SCHEMA_VERSION).toBe('1.0.0');
-    expect(createBackup({ records: [], goals: [] }).backup_version).toBe('1.0.0');
+  it('鞋库应用版本与数据/备份版本符合升级合同', () => {
+    expect(APP_VERSION).toBe('2.1.0');
+    expect(JSON.parse(readFileSync('package.json', 'utf8')).version).toBe(
+      APP_VERSION,
+    );
+    expect(SCHEMA_VERSION).toBe('2.0.0');
+    expect(
+      createBackup({ records: [], goals: [], shoes: [] }).backup_version,
+    ).toBe('2.0.0');
   });
   it.each([
     [new Date(2026, 0, 2, 3, 4, 5), '20260102_030405'],
@@ -45,10 +49,14 @@ describe('备份和 CSV', () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date(2027, 0, 1, 0, 0, 1));
-      const data = parseBackup(jsonBackup({ records: [record()], goals: [] }, exportedAt));
+      const data = parseBackup(
+        jsonBackup({ records: [record()], goals: [], shoes: [] }, exportedAt),
+      );
       expect(data.exported_at).toBe(localIso(exportedAt));
-      expect(localFilenameTime(new Date(data.exported_at))).toBe('20261231_235959');
-      expect(data.records[0].schema_version).toBe('1.0.0');
+      expect(localFilenameTime(new Date(data.exported_at))).toBe(
+        '20261231_235959',
+      );
+      expect(data.records[0].schema_version).toBe('2.0.0');
     } finally {
       vi.useRealTimers();
     }
@@ -70,12 +78,12 @@ describe('备份和 CSV', () => {
         linked_goal_id: goalId,
       }),
     ];
-    const data = { records, goals: [goal()] };
+    const data = { records, goals: [goal()], shoes: [] };
     const parsed = parseBackup(jsonBackup(data));
     expect(parsed.records).toEqual(records);
     expect(parsed.goals).toEqual(data.goals);
     expect(parsed.format).toBe('running-log-backup');
-    expect(parsed.backup_version).toBe('1.0.0');
+    expect(parsed.backup_version).toBe('2.0.0');
   });
   it.each([
     ['plain', 'plain'],
@@ -107,6 +115,7 @@ describe('备份和 CSV', () => {
         }),
       ],
       goals: [goal()],
+      shoes: [],
     });
     expect(rows[0][7]).toBe('');
     expect(rows[0][10]).toBe('');
@@ -121,6 +130,7 @@ describe('备份和 CSV', () => {
     const csv = exportCsv({
       records: [record({ note: '中文, "引号"\n第二行' })],
       goals: [],
+      shoes: [],
     });
     expect(csv.startsWith('\uFEFF' + CSV_HEADERS.join(','))).toBe(true);
     expect(csv).toContain('"中文, ""引号""\n第二行"');
@@ -129,7 +139,7 @@ describe('备份和 CSV', () => {
 });
 describe('按时间合并', () => {
   it('new / newer / older / same，目标与记录一起合并；不以ISO字符串字典序判断', () => {
-    const local = { records: [record()], goals: [goal()] };
+    const local = { records: [record()], goals: [goal()], shoes: [] };
     const cases = [
       [t1, 1, 0],
       [t0, 0, 1],
@@ -159,8 +169,10 @@ describe('按时间合并', () => {
       expect(plan.goalCounts.updated).toBe(1);
     }
     expect(
-      planMerge({ records: [], goals: [] }, backup([record()], [goal()])).counts
-        .added,
+      planMerge(
+        { records: [], goals: [], shoes: [] },
+        backup([record()], [goal()]),
+      ).counts.added,
     ).toBe(2);
   });
 });
@@ -299,8 +311,8 @@ describe('IndexedDB CRUD / 事务', () => {
       }),
     );
     expect(
-      (await repo.importBackup(createBackup({ records, goals: [] }))).counts
-        .added,
+      (await repo.importBackup(createBackup({ records, goals: [], shoes: [] })))
+        .counts.added,
     ).toBe(1000);
     const snapshot = await repo.snapshot();
     expect(snapshot.records).toHaveLength(1000);

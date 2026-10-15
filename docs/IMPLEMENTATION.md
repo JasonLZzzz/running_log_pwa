@@ -1,8 +1,10 @@
-# V2.0 MVP 实现说明
+# 实现说明
+
+当前特性分支目标为 V2.1.0，鞋库与安全迁移说明见 [V2.1.0 工作报告](V2_1_SHOE_LIBRARY.md)。下列既有训练语义与离线策略保持；当前数据库和备份版本已按鞋库合同升级。
 
 ## 范围与设计
 
-按根目录七份任务包实现。版本 V2.0.0、数据 schema 1.0.0。技术栈为 React、TypeScript、Vite 与 idb，普通 CSS；Vitest + fake-indexeddb 验证领域/数据库，Playwright 验证 Chromium/WebKit 移动视口。没有后端或外部数据接口，运行时只请求本站静态资源。
+原训练部分按根目录任务包实现；鞋库按 `tasks/v2_1_0_shoe_library/` 增补。应用版本 V2.1.0、数据 schema 2.0.0。技术栈为 React、TypeScript、Vite 与 idb，普通 CSS；Vitest + fake-indexeddb 验证领域/数据库，Playwright 验证 Chromium/WebKit 移动视口。没有后端或外部数据接口，运行时只请求本站静态资源。
 
 常用计划字段与完成情况按验收清单必填，不隐含任何分类答案。训练时间默认本地当前时刻；编辑时若未改变分钟显示值，原始秒、毫秒和时区串完整保留。所有保存时间带时区；历史排序和冲突判断比较实际时间戳，避免跨时区 ISO 字符串字典序错误。
 
@@ -14,7 +16,7 @@ JSON 恢复原始工程字段；之后编辑保留 ID/创建时间，仅递增�
 
 ## IndexedDB 与迁移
 
-数据库 `running_log_db`，版本 1，包含 `run_records`、`goals`、`app_meta`。记录索引：`activity_time`、`updated_at`；目标索引：`target_date`。schema 版本保存在工程字段与 app_meta。迁移入口为 `migrateIndexedDb` 和 `migrateBackup`，当前不编造未来迁移规则。
+数据库 `running_log_db`，版本 2，包含 `run_records`、`goals`、`app_meta`、`shoes`。记录索引：`activity_time`、`updated_at`；目标索引：`target_date`。schema 版本保存在工程字段与 app_meta。迁移入口为 `migrateIndexedDb` 和 `migrateBackup`；0→2 初装及 1→2 原子迁移均有测试，不编造未来迁移规则。旧目标仅技术版本升级，原业务属性和时间戳不变。
 
 任务包中的 `archived` 索引是建议项。布尔值不是合法的 IndexedDB 索引键，因此保留 `archived: boolean` 数据结构，并在目标列表读取后筛选，没有添加替代工程字段或修改规格文件。
 
@@ -52,4 +54,4 @@ Playwright 1.63 的 WebKit 离线模拟会提前拒绝 service worker 响应，�
 
 Windows 启动脚本保持纯 ASCII，避免 Windows PowerShell 5.1 将无 BOM 的 UTF-8 中文按系统代码页解析而报错；不再依赖临时人工添加 BOM。回归测试验证无 BOM 的仓库脚本可由 PowerShell 5.1 解析、参数（含空格）与退出码正确转发。全部字段帮助弹窗独立设置字重，标题/选项名称加粗，解释正文为普通字重；字段标签、选项与说明原文未改。
 
-只接受 schema 1.0.0 完整备份；未知未来版本明确拒绝。无复杂筛选、训练图表或算法分类。版本更新机制已实现；多版本真实线上更新仍需部署后人工验证。
+接受严格合法的旧 v1 或新 v2 完整备份；未知未来版本明确拒绝。v1 仅在合并边界显式转换为内部 v2，原来源版本保留至合并，以保护已有用鞋信息。升级为 IDB 2 后不能直接运行 V2.0.1；代码 tag 不等于数据回滚方案。无复杂筛选、训练图表或算法分类。版本更新机制已实现；V2.1.0 线上更新和真机迁移仍待授权部署后验证。

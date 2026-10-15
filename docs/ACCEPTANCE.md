@@ -1,5 +1,7 @@
 # V2.0 验收报告（MVP / Release Candidate）
 
+本文保留 V2.0 的历史验收。V2.1.0 的鞋库、迁移、兼容与本轮测试以 [V2.1.0 工作报告](V2_1_SHOE_LIBRARY.md) 为准，未执行的真机检查单独列出。
+
 日期：2026-10-06（Asia/Shanghai）。依据：原始 `04_ACCEPTANCE_TESTS.md`；没有修改任务规格来适配实现。初始 MVP 编码前工作区干净，原仓库仅有任务包。本轮 RC 修订前确认分支 `build_v2_mvp`，基线提交 `8dd65a3`，唯一未提交改动为 `scripts/pnpm.ps1` 人工添加的 UTF-8 BOM；该 workaround 已纳入正式兼容修复。
 
 ## 此前已完成的人工验收

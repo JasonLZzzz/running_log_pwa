@@ -172,7 +172,7 @@ describe('记录和备份校验', () => {
     expect(() =>
       parseBackup(
         JSON.stringify(
-          backup([record({ schema_version: '9.0.0' as '1.0.0' })]),
+          backup([record({ schema_version: '9.0.0' as '2.0.0' })]),
         ),
       ),
     ).toThrow();

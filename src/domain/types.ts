@@ -1,6 +1,6 @@
 import type { Code } from './fields';
-export const SCHEMA_VERSION = '1.0.0';
-export const APP_VERSION = '2.0.1';
+export const SCHEMA_VERSION = '2.0.0';
+export const APP_VERSION = '2.1.0';
 export type RunRecord = {
   record_id: string;
   schema_version: typeof SCHEMA_VERSION;
@@ -22,6 +22,7 @@ export type RunRecord = {
   completion_status: Code<'completion_status'>;
   rpe: number | null;
   note: string | null;
+  shoe_id: string | null;
 };
 export type Goal = {
   goal_id: string;
@@ -32,12 +33,43 @@ export type Goal = {
   created_at: string;
   updated_at: string;
 };
-export type Snapshot = { records: RunRecord[]; goals: Goal[] };
+export type ShoeType = 'daily' | 'speed' | 'race' | 'trail' | 'other';
+export type Shoe = {
+  shoe_id: string;
+  brand: string;
+  model: string;
+  nickname: string;
+  shoe_type: ShoeType | null;
+  status: 'active' | 'retired';
+  note: string | null;
+  schema_version: typeof SCHEMA_VERSION;
+  created_at: string;
+  updated_at: string;
+};
+export type ShoeInput = Omit<
+  Shoe,
+  'shoe_id' | 'schema_version' | 'created_at' | 'updated_at'
+>;
+export type Snapshot = { records: RunRecord[]; goals: Goal[]; shoes: Shoe[] };
 export type Backup = Snapshot & {
+  format: 'running-log-backup';
+  backup_version: '2.0.0';
+  exported_at: string;
+};
+export type LegacyGoal = Omit<Goal, 'schema_version'> & {
+  schema_version: '1.0.0';
+};
+export type LegacyRecord = Omit<RunRecord, 'schema_version' | 'shoe_id'> & {
+  schema_version: '1.0.0';
+};
+export type LegacyBackup = {
   format: 'running-log-backup';
   backup_version: '1.0.0';
   exported_at: string;
+  records: LegacyRecord[];
+  goals: LegacyGoal[];
 };
+export type BackupSource = Backup | LegacyBackup;
 export type RecordInput = Omit<
   RunRecord,
   'record_id' | 'schema_version' | 'created_at' | 'updated_at'

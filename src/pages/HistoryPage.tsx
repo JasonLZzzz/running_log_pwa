@@ -1,7 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { fields, goalStatusLabels, label } from '../domain/fields';
 import { displayTime } from '../domain/time';
-import { goalLabel, type Goal, type RunRecord } from '../domain/types';
+import {
+  goalLabel,
+  type Goal,
+  type RunRecord,
+  type Shoe,
+} from '../domain/types';
+import { shoeLabel } from '../domain/shoes';
 import { Modal } from '../components/Controls';
 export function RecordSummary({
   record,
@@ -32,12 +38,14 @@ export function RecordSummary({
 export function RecordDetail({
   record,
   goals,
+  shoes,
   onEdit,
   onDelete,
   onClose,
 }: {
   record: RunRecord;
   goals: Goal[];
+  shoes: Shoe[];
   onEdit: (record: RunRecord) => void;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
@@ -64,6 +72,12 @@ export function RecordDetail({
   }, [confirm]);
   const rows: [string, string][] = [
     ['训练时间', displayTime(record.activity_time)],
+    [
+      '本次用鞋',
+      record.shoe_id === null
+        ? '未填写'
+        : shoeLabel(shoes.find((shoe) => shoe.shoe_id === record.shoe_id)!),
+    ],
   ];
   for (const key of [
     'planned_structure',

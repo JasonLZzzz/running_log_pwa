@@ -1,4 +1,12 @@
-import type { Backup, Goal, RecordInput, RunRecord } from '../src/domain/types';
+import type {
+  Backup,
+  Goal,
+  LegacyBackup,
+  RecordInput,
+  RunRecord,
+  Shoe,
+  ShoeInput,
+} from '../src/domain/types';
 export const t0 = '2026-10-06T10:00:00+08:00';
 export const t1 = '2026-10-06T11:00:00+08:00';
 export const t2 = '2026-10-06T12:00:00+08:00';
@@ -22,6 +30,7 @@ export function recordInput(patch: Partial<RecordInput> = {}): RecordInput {
     completion_status: 'as_planned',
     rpe: null,
     note: null,
+    shoe_id: null,
     ...patch,
   };
 }
@@ -29,7 +38,7 @@ export function record(patch: Partial<RunRecord> = {}): RunRecord {
   return {
     ...recordInput(),
     record_id: recordId,
-    schema_version: '1.0.0',
+    schema_version: '2.0.0',
     created_at: t0,
     updated_at: t0,
     ...patch,
@@ -38,7 +47,7 @@ export function record(patch: Partial<RunRecord> = {}): RunRecord {
 export function goal(patch: Partial<Goal> = {}): Goal {
   return {
     goal_id: goalId,
-    schema_version: '1.0.0',
+    schema_version: '2.0.0',
     name: '测试目标',
     target_date: '2026-10-31',
     archived: false,
@@ -47,12 +56,55 @@ export function goal(patch: Partial<Goal> = {}): Goal {
     ...patch,
   };
 }
-export function backup(records: RunRecord[] = [], goals: Goal[] = []): Backup {
+export function backup(
+  records: RunRecord[] = [],
+  goals: Goal[] = [],
+  shoes: Shoe[] = [],
+): Backup {
+  return {
+    format: 'running-log-backup',
+    backup_version: '2.0.0',
+    exported_at: t2,
+    records,
+    goals,
+    shoes,
+  };
+}
+export const shoeId = '33333333-3333-4333-8333-333333333333';
+export function shoeInput(patch: Partial<ShoeInput> = {}): ShoeInput {
+  return {
+    brand: '示例品牌',
+    model: '合成训练鞋',
+    nickname: '1号',
+    shoe_type: null,
+    status: 'active',
+    note: null,
+    ...patch,
+  };
+}
+export function shoe(patch: Partial<Shoe> = {}): Shoe {
+  return {
+    ...shoeInput(),
+    shoe_id: shoeId,
+    schema_version: '2.0.0',
+    created_at: t0,
+    updated_at: t0,
+    ...patch,
+  };
+}
+export function legacyBackup(
+  records: RunRecord[] = [record()],
+  goals: Goal[] = [],
+): LegacyBackup {
   return {
     format: 'running-log-backup',
     backup_version: '1.0.0',
     exported_at: t2,
-    records,
-    goals,
+    records: records.map((record) => {
+      const { shoe_id: unusedShoe, ...old } = record;
+      void unusedShoe;
+      return { ...old, schema_version: '1.0.0' };
+    }),
+    goals: goals.map((goal) => ({ ...goal, schema_version: '1.0.0' })),
   };
 }

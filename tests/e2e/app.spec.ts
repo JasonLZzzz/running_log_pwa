@@ -130,8 +130,8 @@ for (const [timezoneId, jsonTime, csvTime, offsetTime] of [
     test.use({ timezoneId });
     test('文件名补零，JSON 同一导出时刻，CSV 使用新动作时刻，版本正确', async ({ page }) => {
       await nav(page, '数据');
-      await expect(page.getByText('应用版本：2.0.1')).toBeVisible();
-      await expect(page.getByText('数据结构版本：1.0.0')).toBeVisible();
+      await expect(page.getByText('应用版本：2.1.0')).toBeVisible();
+      await expect(page.getByText('数据结构版本：2.0.0')).toBeVisible();
       // Any second clock read crosses a minute (and the local date in Los Angeles).
       await page.evaluate(() => {
         const instant = Date.parse('2026-01-02T07:59:59.999Z');
@@ -147,8 +147,8 @@ for (const [timezoneId, jsonTime, csvTime, offsetTime] of [
       const envelope = JSON.parse(json.text) as Backup;
       expect(envelope.exported_at).toBe(offsetTime);
       expect(Date.parse(envelope.exported_at)).toBe(Date.parse('2026-01-02T07:59:59.999Z'));
-      expect(Object.keys(envelope).sort()).toEqual(['backup_version', 'exported_at', 'format', 'goals', 'records']);
-      expect(envelope.backup_version).toBe('1.0.0');
+      expect(Object.keys(envelope).sort()).toEqual(['backup_version', 'exported_at', 'format', 'goals', 'records', 'shoes']);
+      expect(envelope.backup_version).toBe('2.0.0');
       const csv = await downloadFile(page, '导出 CSV');
       expect(csv.filename).toBe(`跑后记录_${csvTime}.csv`);
       expect(csv.text).toBe('\uFEFF' + CSV_HEADERS.join(',') + '\r\n');

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Repository } from '../data/db';
+import { DatabaseUpgradeError, Repository } from '../data/db';
 import type { RunRecord, Snapshot } from '../domain/types';
 import { RecordPage } from '../pages/RecordPage';
 import { HistoryPage, RecordDetail, RecordSummary } from '../pages/HistoryPage';
@@ -21,6 +21,7 @@ export function App() {
   const [snapshot, setSnapshot] = useState<Snapshot>({
     records: [],
     goals: [],
+    shoes: [],
   });
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState('');
@@ -36,14 +37,25 @@ export function App() {
   }, [repository]);
   useEffect(() => {
     void refresh()
-      .then(() => setLoaded(true))
-      .catch(() =>
+      .then(() => {
+        setLoaded(true);
+        setError('');
+      })
+      .catch((error: unknown) =>
         setError(
-          '无法打开本地数据库。请允许网站存储并刷新重试；当前记录尚未保存。',
+          error instanceof DatabaseUpgradeError
+            ? error.message
+            : '无法打开或升级本地数据库。应用不会清空原数据，请保留网站数据和外部 JSON 备份；关闭其他窗口并检查存储权限，仍失败则等待兼容修复。',
         ),
       );
     const focus = () => {
-      void refresh().catch(() => setError('本地数据读取失败，请刷新重试。'));
+      void refresh().catch((error: unknown) =>
+        setError(
+          error instanceof DatabaseUpgradeError
+            ? error.message
+            : '本地数据读取失败，请保留网站数据和外部 JSON 备份后重试。',
+        ),
+      );
     };
     window.addEventListener('focus', focus);
     return () => {
@@ -109,7 +121,9 @@ export function App() {
           </p>
         )}
         {!loaded ? (
-          <p>正在打开本地数据…</p>
+          error ? null : (
+            <p>正在打开本地数据…</p>
+          )
         ) : (
           <>
             {page === 'record' &&
@@ -139,6 +153,7 @@ export function App() {
                   key={formKey}
                   repository={repository}
                   goals={snapshot.goals}
+                  shoes={snapshot.shoes}
                   record={editing}
                   refresh={refresh}
                   onDirty={setDirty}
@@ -164,6 +179,7 @@ export function App() {
                 repository={repository}
                 goals={snapshot.goals}
                 refresh={refresh}
+                shoes={snapshot.shoes}
               />
             )}
           </>
@@ -191,6 +207,7 @@ export function App() {
         <RecordDetail
           record={viewing}
           goals={snapshot.goals}
+          shoes={snapshot.shoes}
           onClose={() => setViewing(undefined)}
           onEdit={edit}
           onDelete={async (id) => {

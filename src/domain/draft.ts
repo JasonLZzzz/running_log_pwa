@@ -49,6 +49,7 @@ export function newDraft(record?: RunRecord): Draft {
     completion_status: '',
     rpe: null,
     note: null,
+    shoe_id: null,
   };
 }
 export function draftErrors(draft: Draft): string[] {

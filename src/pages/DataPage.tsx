@@ -8,19 +8,23 @@ import {
   APP_VERSION,
   SCHEMA_VERSION,
   goalLabel,
-  type Backup,
+  type BackupSource,
   type Goal,
+  type Shoe,
 } from '../domain/types';
 import { GoalEditor } from '../components/Controls';
+import { ShoeManager } from '../components/Shoes';
 export const countsText = (c: Counts) =>
   `新增 ${c.added} / 更新 ${c.updated} / 跳过 ${c.skipped} / 错误 ${c.errors}`;
 export function DataPage({
   repository,
   goals,
+  shoes,
   refresh,
 }: {
   repository: Repository;
   goals: Goal[];
+  shoes: Shoe[];
   refresh: () => Promise<void>;
 }) {
   const [goalEditor, setGoalEditor] = useState<Goal | 'new' | null>(null);
@@ -29,7 +33,7 @@ export function DataPage({
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [pending, setPending] = useState<{
-    backup: Backup;
+    backup: BackupSource;
     plan: MergePlan;
     name: string;
   } | null>(null);
@@ -126,6 +130,17 @@ export function DataPage({
               记录：{countsText(pending.plan.recordCounts)}
               <br />
               目标：{countsText(pending.plan.goalCounts)}
+              <br />
+              鞋库：{countsText(pending.plan.shoeCounts)}
+            </p>
+            {pending.backup.backup_version === '1.0.0' && (
+              <p>
+                旧版备份没有用鞋信息；将保护本地已有用鞋关联。本次保护{' '}
+                {pending.plan.protectedShoeLinks} 条关联。
+              </p>
+            )}
+            <p className="subtle">
+              鞋子按唯一 ID 合并；不同 ID 的同名鞋会分别保留。
             </p>
             <p>按ID合并，同ID保留更新时间较新的内容；相同时间保留本地内容。</p>
             <div className="actions">
@@ -138,7 +153,7 @@ export function DataPage({
                     setPending(null);
                     await refresh();
                     setMessage(
-                      `导入完成：${countsText(plan.counts)}。记录：${countsText(plan.recordCounts)}。目标：${countsText(plan.goalCounts)}。`,
+                      `导入完成：${countsText(plan.counts)}。记录：${countsText(plan.recordCounts)}。目标：${countsText(plan.goalCounts)}。鞋库：${countsText(plan.shoeCounts)}。保护已有用鞋关联 ${plan.protectedShoeLinks} 条。`,
                     );
                   })
                 }
@@ -214,8 +229,19 @@ export function DataPage({
           ))}
         </ul>
       </div>
+      <ShoeManager repository={repository} shoes={shoes} refresh={refresh} />
       <div className="panel">
         <h2>本地存储说明</h2>
+        <p>
+          新版 JSON
+          备份包含鞋库与用鞋关联；旧版备份可以导入，但没有用鞋信息。不同 ID
+          的同名鞋不会自动合并。
+        </p>
+        <p>
+          数据库升级后不能直接退回 V2.0.1。请保留升级前的外部 JSON
+          备份；遇到问题不要卸载 PWA
+          或清理网站数据，应使用兼容新版数据库的修复版本。
+        </p>
         <p>数据保存在当前浏览器或主屏幕应用的本地存储中，不会上传服务器。</p>
         <p>
           更换域名、清除 Safari

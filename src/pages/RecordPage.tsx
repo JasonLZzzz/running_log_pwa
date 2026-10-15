@@ -7,13 +7,20 @@ import {
   togglePurpose,
   type Draft,
 } from '../domain/draft';
-import { goalLabel, type Goal, type RunRecord } from '../domain/types';
+import {
+  goalLabel,
+  type Goal,
+  type RunRecord,
+  type Shoe,
+} from '../domain/types';
+import { ShoeEditor, ShoePicker } from '../components/Shoes';
 import { Choices, GoalEditor, Help, OtherInput } from '../components/Controls';
 import type { Repository } from '../data/db';
 import { ValidationError } from '../data/schema';
 export function RecordPage({
   repository,
   goals,
+  shoes,
   record,
   onSaved,
   refresh,
@@ -21,6 +28,7 @@ export function RecordPage({
 }: {
   repository: Repository;
   goals: Goal[];
+  shoes: Shoe[];
   record?: RunRecord;
   onSaved: (record: RunRecord) => void;
   refresh: () => Promise<void>;
@@ -32,6 +40,7 @@ export function RecordPage({
   const recordId = useRef(record?.record_id ?? crypto.randomUUID());
   const [error, setError] = useState('');
   const [newGoal, setNewGoal] = useState(false);
+  const [newShoe, setNewShoe] = useState(false);
   const [archived, setArchived] = useState(false);
   const errors = draftErrors(draft);
   function change(patch: Partial<Draft>) {
@@ -106,6 +115,12 @@ export function RecordPage({
             onChange={(e) => change({ activity_time: e.target.value })}
           />
         </label>
+        <ShoePicker
+          shoes={shoes}
+          value={draft.shoe_id}
+          onChange={(shoe_id) => change({ shoe_id })}
+          onNew={() => setNewShoe(true)}
+        />
         {single('planned_structure')}
         {draft.planned_structure === 'other' && (
           <OtherInput
@@ -366,6 +381,18 @@ export function RecordPage({
               linked_goal_id: goal.goal_id,
             });
             setNewGoal(false);
+          }}
+        />
+      )}
+      {newShoe && (
+        <ShoeEditor
+          shoes={shoes}
+          onClose={() => setNewShoe(false)}
+          onSave={async (input, id) => {
+            const shoe = await repository.saveShoe(input, id);
+            await refresh();
+            change({ shoe_id: shoe.shoe_id });
+            setNewShoe(false);
           }}
         />
       )}
