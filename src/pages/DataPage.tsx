@@ -16,6 +16,24 @@ import { GoalEditor } from '../components/Controls';
 import { ShoeManager } from '../components/Shoes';
 export const countsText = (c: Counts) =>
   `新增 ${c.added} / 更新 ${c.updated} / 跳过 ${c.skipped} / 错误 ${c.errors}`;
+function TransferIcon({ upload = false }: { upload?: boolean }) {
+  return (
+    <svg
+      className="backup-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 15v5h16v-5" />
+      <path d={upload ? 'M12 16V4m-5 5 5-5 5 5' : 'M12 4v12m-5-5 5 5 5-5'} />
+    </svg>
+  );
+}
 export function DataPage({
   repository,
   goals,
@@ -61,43 +79,76 @@ export function DataPage({
       <h1>数据</h1>
       <div className="panel">
         <h2>数据备份</h2>
-        <div className="stack">
-          <button
-            disabled={busy}
-            onClick={() =>
-              void action(async () => {
-                const exportedAt = new Date();
-                download(
-                  jsonBackup(await repository.snapshot(), exportedAt),
-                  `跑后记录备份_${localFilenameTime(exportedAt)}.json`,
-                  'application/json;charset=utf-8',
-                );
-                setMessage('JSON 备份已导出。');
-              })
-            }
+        <section
+          className="backup-export"
+          aria-labelledby="backup-export-title"
+        >
+          <h3 id="backup-export-title">导出数据</h3>
+          <div className="backup-export-options">
+            <div className="backup-option">
+              <button
+                aria-describedby="backup-json-description"
+                disabled={busy}
+                onClick={() =>
+                  void action(async () => {
+                    const exportedAt = new Date();
+                    download(
+                      jsonBackup(await repository.snapshot(), exportedAt),
+                      `跑后记录备份_${localFilenameTime(exportedAt)}.json`,
+                      'application/json;charset=utf-8',
+                    );
+                    setMessage('JSON 备份已导出。');
+                  })
+                }
+              >
+                <TransferIcon />
+                <span>导出 JSON 备份</span>
+              </button>
+              <p className="subtle" id="backup-json-description">
+                包含完整记录、目标和鞋库，用于备份与恢复。
+              </p>
+            </div>
+            <div className="backup-option">
+              <button
+                aria-describedby="backup-csv-description"
+                disabled={busy}
+                onClick={() =>
+                  void action(async () => {
+                    const exportedAt = new Date();
+                    download(
+                      exportCsv(await repository.snapshot()),
+                      `跑后记录_${localFilenameTime(exportedAt)}.csv`,
+                      'text/csv;charset=utf-8',
+                    );
+                    setMessage('CSV 已导出。');
+                  })
+                }
+              >
+                <TransferIcon />
+                <span>导出 CSV</span>
+              </button>
+              <p className="subtle" id="backup-csv-description">
+                用于表格查看、整理及后续分析。
+              </p>
+            </div>
+          </div>
+        </section>
+        <section
+          className="backup-import"
+          aria-labelledby="backup-import-title"
+        >
+          <h3 id="backup-import-title">导入数据</h3>
+          <p className="subtle" id="backup-import-description">
+            从 JSON 备份导入数据，操作前先预览合并结果。
+          </p>
+          <label
+            className={`file-button backup-file-button ${busy ? 'disabled' : ''}`}
           >
-            导出 JSON 备份
-          </button>
-          <button
-            disabled={busy}
-            onClick={() =>
-              void action(async () => {
-                const exportedAt = new Date();
-                download(
-                  exportCsv(await repository.snapshot()),
-                  `跑后记录_${localFilenameTime(exportedAt)}.csv`,
-                  'text/csv;charset=utf-8',
-                );
-                setMessage('CSV 已导出。');
-              })
-            }
-          >
-            导出 CSV
-          </button>
-          <label className={`file-button ${busy ? 'disabled' : ''}`}>
-            导入 JSON
+            <TransferIcon upload />
+            <span>导入 JSON</span>
             <input
               aria-label="导入 JSON"
+              aria-describedby="backup-import-description"
               type="file"
               accept=".json,application/json"
               disabled={busy}
@@ -120,7 +171,7 @@ export function DataPage({
               }}
             />
           </label>
-        </div>
+        </section>
         {pending && (
           <div className="import-preview">
             <h3>导入预览</h3>
